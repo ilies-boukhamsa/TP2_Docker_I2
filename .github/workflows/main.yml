@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-24.04
     defaults:
       run:
-        working-directory: ../../backendAPI/simple-api-student-main
+        working-directory: backendAPI/simple-api-student-main
 
     steps:
       - name: Checkout
