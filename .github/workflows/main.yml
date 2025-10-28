@@ -1,4 +1,4 @@
-name: CI devops 2025
+name: CI DevOps 2025
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
   pull-requests: read
 
 jobs:
-  # 1) Tests Maven + SonarCloud
+  # Tests Maven + SonarCloud
   test-backend:
     runs-on: ubuntu-24.04
     defaults:
@@ -18,10 +18,10 @@ jobs:
         working-directory: backendAPI/simple-api-student-main
 
     steps:
-      - name: Checkout
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0   # nécessaire pour des analyses SonarCloud plus fiables
+          fetch-depth: 0   # nécessaire pour SonarCloud (analyse complète de l'historique Git)
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -38,15 +38,16 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: |
+          echo " Lancement de l'analyse SonarCloud..."
           mvn -B -ntp verify sonar:sonar \
-            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
-            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }} \
+            -Dsonar.projectKey=ilies-boukhamsa_TP2_Docker_I2 \
+            -Dsonar.organization=ilies-boukhamsa \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
-  # 2) Build & push des images Docker
+  # 2Build & push des images Docker
   build-and-push-docker-image:
-    needs: test-backend     # n’exécute ce job que si les tests + Sonar passent
+    needs: test-backend     # ne s'exécute que si les tests + Sonar sont OK
     runs-on: ubuntu-24.04
 
     steps:
@@ -62,7 +63,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Backend
+      # Backend image
       - name: Build (and push on main) backend image
         uses: docker/build-push-action@v6
         with:
@@ -70,7 +71,7 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp2-simple-api:latest
           push: ${{ github.ref == 'refs/heads/main' }}
 
-      # Database
+      # Database image
       - name: Build (and push on main) database image
         uses: docker/build-push-action@v6
         with:
@@ -78,7 +79,7 @@ jobs:
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/tp2-database:latest
           push: ${{ github.ref == 'refs/heads/main' }}
 
-      # Httpd
+      # Httpd image
       - name: Build (and push on main) httpd image
         uses: docker/build-push-action@v6
         with:
