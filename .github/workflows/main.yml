@@ -5,8 +5,12 @@ on:
     branches: [ "main", "develop" ]
   pull_request:
 
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
-# 1) Tests Maven
+  # 1) Tests Maven + SonarCloud
   test-backend:
     runs-on: ubuntu-24.04
     defaults:
@@ -16,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # nécessaire pour des analyses SonarCloud plus fiables
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
@@ -24,18 +30,25 @@ jobs:
           java-version: '21'
           cache: maven
 
- 
       - name: Build and test with Maven
         run: mvn -B -ntp clean verify
 
-# 2) Build & push des images Docker
-# define job to build and publish docker image
+      # Analyse SonarCloud (Quality Gate)
+      - name: SonarCloud Scan
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        run: |
+          mvn -B -ntp verify sonar:sonar \
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }} \
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }} \
+            -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+  # 2) Build & push des images Docker
   build-and-push-docker-image:
-    needs: test-backend   
-    # run only when code is compiling and tests are passing        
+    needs: test-backend     # n’exécute ce job que si les tests + Sonar passent
     runs-on: ubuntu-24.04
 
-     # steps to perform in job
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
